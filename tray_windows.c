@@ -139,15 +139,36 @@ void tray_update(struct tray *tray) {
   UINT id = ID_TRAY_FIRST;
   hmenu = _tray_menu(tray->menu, &id);
   SendMessage(hwnd, WM_INITMENUPOPUP, (WPARAM)hmenu, 0);
-  HICON icon;
+  HICON icon,largeIcon;
   ExtractIconEx(tray->icon, 0, NULL, &icon, 1);
+  ExtractIconEx(tray->icon, 0, &largeIcon, NULL, 1);
   if (nid.hIcon) {
     DestroyIcon(nid.hIcon);
   }
+  if(nid.hBalloonIcon){
+    DestroyIcon(nid.hBalloonIcon);
+  }
   nid.hIcon = icon;
+  if(largeIcon){
+    nid.hBalloonIcon = largeIcon;
+  }
   if(tray->tooltip != 0 && strlen(tray->tooltip) > 0) {
     strncpy(nid.szTip, tray->tooltip, sizeof(nid.szTip));
     nid.uFlags |= NIF_TIP;
+  }
+  if(tray->notification_title != 0 && strlen(tray->notification_title) > 0){
+    strncpy(nid.szInfoTitle, tray->notification_title, sizeof(nid.szInfoTitle));
+    nid.uFlags = NIF_INFO;
+    if(largeIcon){
+      nid.dwInfoFlags = NIIF_USER | NIIF_LARGE_ICON;
+    }
+  } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
+    strncpy(nid.szInfoTitle, "", sizeof(nid.szInfoTitle));
+  }
+  if(tray->notification_text != 0 && strlen(tray->notification_text) > 0){
+    strncpy(nid.szInfo, tray->notification_text, sizeof(nid.szInfo));
+  } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
+    strncpy(nid.szInfo, "", sizeof(nid.szInfo));
   }
   Shell_NotifyIcon(NIM_MODIFY, &nid);
 
