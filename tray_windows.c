@@ -10,6 +10,7 @@ static WNDCLASSEX wc;
 static NOTIFYICONDATA nid;
 static HWND hwnd;
 static HMENU hmenu = NULL;
+static UINT wm_taskbarcreated;
 
 static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam,
                                        LPARAM lparam) {
@@ -47,6 +48,12 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam,
     }
     break;
   }
+
+  if (msg == wm_taskbarcreated) {
+    Shell_NotifyIcon(NIM_ADD, &nid);
+    return 0;
+  }
+
   return DefWindowProc(hwnd, msg, wparam, lparam);
 }
 
@@ -83,6 +90,8 @@ static HMENU _tray_menu(struct tray_menu *m, UINT *id) {
 }
 
 int tray_init(struct tray *tray) {
+  wm_taskbarcreated = RegisterWindowMessage("TaskbarCreated");
+
   memset(&wc, 0, sizeof(wc));
   wc.cbSize = sizeof(WNDCLASSEX);
   wc.lpfnWndProc = _tray_wnd_proc;

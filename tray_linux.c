@@ -1,6 +1,7 @@
-#include <gtk/gtk.h>
-#include <libappindicator/app-indicator.h>
 #include "tray.h"
+#include <string.h>
+#include <stddef.h>
+#include <libayatana-appindicator/app-indicator.h>
 
 #define TRAY_APPINDICATOR_ID "tray-id"
 

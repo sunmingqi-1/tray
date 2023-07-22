@@ -2,10 +2,16 @@ cmake_minimum_required(VERSION 3.13 FATAL_ERROR) # target_link_directories
 
 project(tray C)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/cmake)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+
 
 # Generate 'compile_commands.json' for clang_complete
+set(CMAKE_COLOR_MAKEFILE ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+
+find_package (PkgConfig REQUIRED)
+
 
 file(GLOB SRCS
         ${CMAKE_CURRENT_LIST_DIR}/*.h
@@ -20,8 +26,7 @@ else()
 			find_library(COCOA Cocoa REQUIRED)
 			list(APPEND SRCS ${CMAKE_CURRENT_SOURCE_DIR}/tray_darwin.m)
 		else()
-			FIND_PACKAGE(PkgConfig)
-			PKG_CHECK_MODULES(APPINDICATOR REQUIRED appindicator3-0.1)
+			find_package(APPINDICATOR REQUIRED)
 			list(APPEND SRCS ${CMAKE_CURRENT_SOURCE_DIR}/tray_linux.c)
 		endif()
 	endif()
@@ -36,15 +41,15 @@ if(WIN32)
 	endif()
 else()
         if(UNIX)
-                if(APPLE)
-			target_compile_definitions(tray PRIVATE TRAY_APPKIT=1)
-			target_link_libraries(tray PRIVATE ${COCOA})
-                else()
-			target_compile_options(tray PRIVATE ${APPINDICATOR_CFLAGS})
-			target_link_directories(tray PRIVATE ${APPINDICATOR_LIBRARY_DIRS})
-			target_compile_definitions(tray PRIVATE TRAY_APPINDICATOR=1)
-			target_link_libraries(tray PRIVATE ${APPINDICATOR_LIBRARIES})
-                endif()
+			if(APPLE)
+				target_compile_definitions(tray PRIVATE TRAY_APPKIT=1)
+				target_link_libraries(tray PRIVATE ${COCOA})
+            else()
+				target_compile_options(tray PRIVATE ${APPINDICATOR_CFLAGS})
+				target_link_directories(tray PRIVATE ${APPINDICATOR_LIBRARY_DIRS})
+				target_compile_definitions(tray PRIVATE TRAY_APPINDICATOR=1)
+				target_link_libraries(tray PRIVATE ${APPINDICATOR_LIBRARIES})
+			endif()
         endif()
 endif()
 

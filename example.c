@@ -12,8 +12,8 @@
 #include "tray.h"
 
 #if TRAY_APPINDICATOR
-#define TRAY_ICON1 "indicator-messages"
-#define TRAY_ICON2 "indicator-messages-new"
+#define TRAY_ICON1 "mail-message-new"
+#define TRAY_ICON2 "mail-message-new"
 #elif TRAY_APPKIT
 #define TRAY_ICON1 "icon.png"
 #define TRAY_ICON2 "icon.png"
