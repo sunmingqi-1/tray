@@ -72,7 +72,8 @@ void tray_update(struct tray *tray) {
       notify_notification_close(currentNotification,NULL);
       g_object_unref(G_OBJECT(currentNotification));
     }
-    currentNotification = notify_notification_new(tray->notification_title, tray->notification_text, tray->icon);
+    const char *notification_icon = tray->notification_icon != NULL ? tray->notification_icon : tray->icon;
+    currentNotification = notify_notification_new(tray->notification_title, tray->notification_text, notification_icon);
     notify_notification_show(currentNotification, NULL);
   }
 }

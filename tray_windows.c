@@ -10,6 +10,7 @@ static WNDCLASSEX wc;
 static NOTIFYICONDATA nid;
 static HWND hwnd;
 static HMENU hmenu = NULL;
+static void (*notification_cb)() = 0;
 static UINT wm_taskbarcreated;
 
 static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam,
@@ -31,6 +32,8 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam,
                                 p.x, p.y, 0, hwnd, NULL);
       SendMessage(hwnd, WM_COMMAND, cmd, 0);
       return 0;
+    } else if(lparam == NIN_BALLOONUSERCLICK && notification_cb != NULL){
+      notification_cb();
     }
     break;
   case WM_COMMAND:
@@ -139,9 +142,10 @@ void tray_update(struct tray *tray) {
   UINT id = ID_TRAY_FIRST;
   hmenu = _tray_menu(tray->menu, &id);
   SendMessage(hwnd, WM_INITMENUPOPUP, (WPARAM)hmenu, 0);
+  const char *notification_icon = tray->notification_icon != NULL ? tray->notification_icon : tray->icon;
   HICON icon,largeIcon;
   ExtractIconEx(tray->icon, 0, NULL, &icon, 1);
-  ExtractIconEx(tray->icon, 0, &largeIcon, NULL, 1);
+  ExtractIconEx(notification_icon, 0, &largeIcon, NULL, 1);
   if (nid.hIcon) {
     DestroyIcon(nid.hIcon);
   }
@@ -169,6 +173,9 @@ void tray_update(struct tray *tray) {
     strncpy(nid.szInfo, tray->notification_text, sizeof(nid.szInfo));
   } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
     strncpy(nid.szInfo, "", sizeof(nid.szInfo));
+  }
+  if(tray->notification_cb != NULL){
+    notification_cb = tray->notification_cb;
   }
   Shell_NotifyIcon(NIM_MODIFY, &nid);
 

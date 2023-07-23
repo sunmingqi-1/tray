@@ -11,8 +11,10 @@ struct tray_menu;
 struct tray {
   const char *icon;
   char *tooltip;
-  char *notification_text;
-  char *notification_title;
+  const char *notification_text;
+  const char *notification_title;
+  const char *notification_icon;
+  void (*notification_cb)();
   struct tray_menu *menu;
 };
 
