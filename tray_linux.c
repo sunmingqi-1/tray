@@ -74,6 +74,9 @@ void tray_update(struct tray *tray) {
     }
     const char *notification_icon = tray->notification_icon != NULL ? tray->notification_icon : tray->icon;
     currentNotification = notify_notification_new(tray->notification_title, tray->notification_text, notification_icon);
+    if(tray->notification_cb != NULL){
+      notify_notification_add_action(currentNotification,"default","Default",tray->notification_cb,NULL,NULL);
+    }
     notify_notification_show(currentNotification, NULL);
   }
 }
