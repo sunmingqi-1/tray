@@ -166,15 +166,15 @@ void tray_update(struct tray *tray) {
   }
   if(tray->notification_title != 0 && strlen(tray->notification_title) > 0){
     strncpy(nid.szInfoTitle, tray->notification_title, sizeof(nid.szInfoTitle));
-    nid.uFlags = NIF_INFO;
+    nid.uFlags |= NIF_INFO;
   } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
-    nid.uFlags ^= ~NIF_INFO;
+    nid.uFlags &= ~NIF_INFO;
     strncpy(nid.szInfoTitle, "", sizeof(nid.szInfoTitle));
   }
   if(tray->notification_text != 0 && strlen(tray->notification_text) > 0){
     strncpy(nid.szInfo, tray->notification_text, sizeof(nid.szInfo));
   } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
-    nid.uFlags ^= ~NIF_INFO;
+    nid.uFlags &= ~NIF_INFO;
     strncpy(nid.szInfo, "", sizeof(nid.szInfo));
   }
   if(tray->notification_cb != NULL){
