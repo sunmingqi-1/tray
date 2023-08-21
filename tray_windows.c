@@ -164,18 +164,21 @@ void tray_update(struct tray *tray) {
     strncpy(nid.szTip, tray->tooltip, sizeof(nid.szTip));
     nid.uFlags |= NIF_TIP;
   }
-  if(tray->notification_title != 0 && strlen(tray->notification_title) > 0){
+  QUERY_USER_NOTIFICATION_STATE notification_state;
+  HRESULT ns = SHQueryUserNotificationState(&notification_state);
+  int can_show_notifications = ns == S_OK && notification_state == QUNS_ACCEPTS_NOTIFICATIONS;
+  if(can_show_notifications == 1 && tray->notification_title != 0 && strlen(tray->notification_title) > 0){
     strncpy(nid.szInfoTitle, tray->notification_title, sizeof(nid.szInfoTitle));
     nid.uFlags |= NIF_INFO;
   } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
     strncpy(nid.szInfoTitle, "", sizeof(nid.szInfoTitle));
   }
-  if(tray->notification_text != 0 && strlen(tray->notification_text) > 0){
+  if(can_show_notifications == 1 && tray->notification_text != 0 && strlen(tray->notification_text) > 0){
     strncpy(nid.szInfo, tray->notification_text, sizeof(nid.szInfo));
   } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
     strncpy(nid.szInfo, "", sizeof(nid.szInfo));
   }
-  if(tray->notification_cb != NULL){
+  if(can_show_notifications == 1 && tray->notification_cb != NULL){
     notification_cb = tray->notification_cb;
   }
   Shell_NotifyIcon(NIM_MODIFY, &nid);
