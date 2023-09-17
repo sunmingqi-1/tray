@@ -1,7 +1,11 @@
 #include "tray.h"
 #include <string.h>
 #include <stddef.h>
+#ifdef TRAY_AYATANA_APPINDICATOR
 #include <libayatana-appindicator/app-indicator.h>
+#elif TRAY_LEGACY_APPINDICATOR
+#include <appindicator/app-indicator.h>
+#endif
 
 #define TRAY_APPINDICATOR_ID "tray-id"
 
