@@ -4,7 +4,7 @@
 #ifdef TRAY_AYATANA_APPINDICATOR
 #include <libayatana-appindicator/app-indicator.h>
 #elif TRAY_LEGACY_APPINDICATOR
-#include <appindicator/app-indicator.h>
+#include <libappindicator/app-indicator.h>
 #endif
 
 #include <libnotify/notify.h>
