@@ -10,6 +10,7 @@ static WNDCLASSEX wc;
 static NOTIFYICONDATA nid;
 static HWND hwnd;
 static HMENU hmenu = NULL;
+static void (*notification_cb)() = 0;
 static UINT wm_taskbarcreated;
 
 static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam,
@@ -31,6 +32,8 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam,
                                 p.x, p.y, 0, hwnd, NULL);
       SendMessage(hwnd, WM_COMMAND, cmd, 0);
       return 0;
+    } else if(lparam == NIN_BALLOONUSERCLICK && notification_cb != NULL){
+      notification_cb();
     }
     break;
   case WM_COMMAND:
@@ -139,15 +142,44 @@ void tray_update(struct tray *tray) {
   UINT id = ID_TRAY_FIRST;
   hmenu = _tray_menu(tray->menu, &id);
   SendMessage(hwnd, WM_INITMENUPOPUP, (WPARAM)hmenu, 0);
-  HICON icon;
+  HICON icon,largeIcon;
   ExtractIconEx(tray->icon, 0, NULL, &icon, 1);
+  if(tray->notification_icon != 0){
+    ExtractIconEx(tray->notification_icon, 0, &largeIcon, NULL, 1);
+  } else {
+    ExtractIconEx(tray->icon, 0, &largeIcon, NULL, 1);
+  }
   if (nid.hIcon) {
     DestroyIcon(nid.hIcon);
   }
+  if(nid.hBalloonIcon){
+    DestroyIcon(nid.hBalloonIcon);
+  }
   nid.hIcon = icon;
+  if(largeIcon != 0){
+    nid.hBalloonIcon = largeIcon;
+    nid.dwInfoFlags = NIIF_USER | NIIF_LARGE_ICON;
+  }
   if(tray->tooltip != 0 && strlen(tray->tooltip) > 0) {
     strncpy(nid.szTip, tray->tooltip, sizeof(nid.szTip));
     nid.uFlags |= NIF_TIP;
+  }
+  QUERY_USER_NOTIFICATION_STATE notification_state;
+  HRESULT ns = SHQueryUserNotificationState(&notification_state);
+  int can_show_notifications = ns == S_OK && notification_state == QUNS_ACCEPTS_NOTIFICATIONS;
+  if(can_show_notifications == 1 && tray->notification_title != 0 && strlen(tray->notification_title) > 0){
+    strncpy(nid.szInfoTitle, tray->notification_title, sizeof(nid.szInfoTitle));
+    nid.uFlags |= NIF_INFO;
+  } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
+    strncpy(nid.szInfoTitle, "", sizeof(nid.szInfoTitle));
+  }
+  if(can_show_notifications == 1 && tray->notification_text != 0 && strlen(tray->notification_text) > 0){
+    strncpy(nid.szInfo, tray->notification_text, sizeof(nid.szInfo));
+  } else if((nid.uFlags & NIF_INFO) == NIF_INFO) {
+    strncpy(nid.szInfo, "", sizeof(nid.szInfo));
+  }
+  if(can_show_notifications == 1 && tray->notification_cb != NULL){
+    notification_cb = tray->notification_cb;
   }
   Shell_NotifyIcon(NIM_MODIFY, &nid);
 
