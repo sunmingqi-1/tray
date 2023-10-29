@@ -54,10 +54,11 @@ int tray_init(struct tray *tray) {
   if(gtk_init_check(0, NULL) == FALSE) {
     return -1;
   }
+  notify_init("tray-icon");
   indicator = app_indicator_new(TRAY_APPINDICATOR_ID, tray->icon,
     APP_INDICATOR_CATEGORY_APPLICATION_STATUS);
+  if(indicator == NULL || !IS_APP_INDICATOR(indicator))return -1;
   app_indicator_set_status(indicator, APP_INDICATOR_STATUS_ACTIVE);
-  notify_init("tray-icon");
   tray_update(tray);
   return 0;
 }
@@ -68,26 +69,30 @@ int tray_loop(int blocking) {
 }
 
 void tray_update(struct tray *tray) {
-  app_indicator_set_icon(indicator, tray->icon);
-  // GTK is all about reference counting, so previous menu should be destroyed
-  // here
-  app_indicator_set_menu(indicator, GTK_MENU(_tray_menu(tray->menu)));
+  if(indicator != NULL && IS_APP_INDICATOR(indicator)){
+    app_indicator_set_icon(indicator, tray->icon);
+    // GTK is all about reference counting, so previous menu should be destroyed
+    // here
+    app_indicator_set_menu(indicator, GTK_MENU(_tray_menu(tray->menu)));
+  }
   if(tray->notification_text != 0 && strlen(tray->notification_text) > 0 && notify_is_initted()) {
-    if(currentNotification != NULL){
+    if(currentNotification != NULL && NOTIFY_IS_NOTIFICATION(currentNotification)){
       notify_notification_close(currentNotification,NULL);
       g_object_unref(G_OBJECT(currentNotification));
     }
     const char *notification_icon = tray->notification_icon != NULL ? tray->notification_icon : tray->icon;
     currentNotification = notify_notification_new(tray->notification_title, tray->notification_text, notification_icon);
-    if(tray->notification_cb != NULL){
-      notify_notification_add_action(currentNotification,"default","Default",tray->notification_cb,NULL,NULL);
+    if(currentNotification != NULL && NOTIFY_IS_NOTIFICATION(currentNotification)){
+      if(tray->notification_cb != NULL){
+        notify_notification_add_action(currentNotification,"default","Default",tray->notification_cb,NULL,NULL);
+      }
+      notify_notification_show(currentNotification, NULL);
     }
-    notify_notification_show(currentNotification, NULL);
   }
 }
 
 void tray_exit(void) { 
-  if(currentNotification != NULL){
+  if(currentNotification != NULL && NOTIFY_IS_NOTIFICATION(currentNotification)){
     int v = notify_notification_close(currentNotification,NULL);
     if(v == TRUE)g_object_unref(G_OBJECT(currentNotification));
   }
