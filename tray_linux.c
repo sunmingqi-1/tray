@@ -3,6 +3,8 @@
 #include <stddef.h>
 #ifdef TRAY_AYATANA_APPINDICATOR
 #include <libayatana-appindicator/app-indicator.h>
+/*Ayatana flavor of appindicator has a different name for the same Macro*/
+#define IS_APP_INDICATOR APP_IS_INDICATOR 
 #elif TRAY_LEGACY_APPINDICATOR
 #include <libappindicator/app-indicator.h>
 #endif
