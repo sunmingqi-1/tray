@@ -6,12 +6,28 @@
 #define WC_TRAY_CLASS_NAME "TRAY"
 #define ID_TRAY_FIRST 1000
 
+struct icon_info {
+  const char *path;
+  HICON icon;
+  HICON large_icon;
+  HICON notification_icon;
+};
+
+enum IconType {
+  REGULAR = 1,
+  LARGE,
+  NOTIFICATION
+};
+
 static WNDCLASSEX wc;
 static NOTIFYICONDATA nid;
 static HWND hwnd;
 static HMENU hmenu = NULL;
 static void (*notification_cb)() = 0;
 static UINT wm_taskbarcreated;
+
+static struct icon_info *icon_infos;
+static int icon_info_count;
 
 static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam,
                                        LPARAM lparam) {
@@ -92,8 +108,72 @@ static HMENU _tray_menu(struct tray_menu *m, UINT *id) {
   return hmenu;
 }
 
+struct icon_info _create_icon_info(const char * path) {
+  struct icon_info info;
+  info.path = path;
+  ExtractIconEx(path, 0, &info.large_icon, &info.icon, 1);
+  info.notification_icon = LoadImageA(NULL, path, IMAGE_ICON, GetSystemMetrics(SM_CXICON) * 2, GetSystemMetrics(SM_CYICON) * 2, LR_LOADFROMFILE);
+  return info;
+}
+
+void _init_icon_cache(const char ** paths, int count) {
+  icon_info_count = count;
+  icon_infos = malloc(sizeof(struct icon_info) * icon_info_count);
+
+  for (int i = 0; i < count; ++i) {
+    icon_infos[i] = _create_icon_info(paths[i]);
+  }
+}
+
+void _destroy_icon_cache() {
+  for (int i = 0; i < icon_info_count; ++i) {
+    DestroyIcon(icon_infos[i].icon);
+    DestroyIcon(icon_infos[i].large_icon);
+    DestroyIcon(icon_infos[i].notification_icon);
+  }
+
+  free(icon_infos);
+  icon_infos = NULL;
+  icon_info_count = 0;
+}
+
+HICON _fetch_cached_icon(const char * path, enum IconType icon_type) {
+  for (int i = 0; i < icon_info_count; ++i) {
+    if (strcmp(icon_infos[i].path, path) == 0) {
+      switch (icon_type) {
+        case REGULAR:
+          return icon_infos[i].icon;
+        case LARGE:
+          return icon_infos[i].large_icon;
+        case NOTIFICATION:
+          return icon_infos[i].notification_icon;
+      }
+    }
+  }
+
+  return NULL;
+}
+
+HICON _fetch_icon(const char * path, enum IconType icon_type) {
+  HICON value = _fetch_cached_icon(path, icon_type);
+
+  if (value != NULL) {
+    return value;
+  }
+
+  // Expand cache, fetch, and retry
+  icon_info_count += 1;
+  icon_infos = realloc(icon_infos, sizeof(struct icon_info) * icon_info_count);
+  int index = icon_info_count - 1;
+  icon_infos[icon_info_count - 1] = _create_icon_info(path);
+
+  return _fetch_icon(path, icon_type);
+}
+
 int tray_init(struct tray *tray) {
   wm_taskbarcreated = RegisterWindowMessage("TaskbarCreated");
+
+  _init_icon_cache(tray->allIconPaths, tray->iconPathCount);
 
   memset(&wc, 0, sizeof(wc));
   wc.cbSize = sizeof(WNDCLASSEX);
@@ -138,24 +218,20 @@ int tray_loop(int blocking) {
 }
 
 void tray_update(struct tray *tray) {
-  HMENU prevmenu = hmenu;
   UINT id = ID_TRAY_FIRST;
+  HMENU prevmenu = hmenu;
   hmenu = _tray_menu(tray->menu, &id);
   SendMessage(hwnd, WM_INITMENUPOPUP, (WPARAM)hmenu, 0);
-  HICON icon,largeIcon;
-  ExtractIconEx(tray->icon, 0, NULL, &icon, 1);
-  if(tray->notification_icon != 0){
-    largeIcon = LoadImageA(NULL, tray->notification_icon, IMAGE_ICON, GetSystemMetrics(SM_CXICON) * 2, GetSystemMetrics(SM_CYICON) * 2, LR_LOADFROMFILE);
-  } else {
-    ExtractIconEx(tray->icon, 0, &largeIcon, NULL, 1);
+
+  HICON icon = _fetch_icon(tray->icon, REGULAR);
+  HICON largeIcon = tray->notification_icon != 0
+    ? _fetch_icon(tray->notification_icon, NOTIFICATION)
+    : _fetch_icon(tray->icon, LARGE);
+
+  if (icon != NULL) {
+    nid.hIcon = icon;
   }
-  if (nid.hIcon) {
-    DestroyIcon(nid.hIcon);
-  }
-  if(nid.hBalloonIcon){
-    DestroyIcon(nid.hBalloonIcon);
-  }
-  nid.hIcon = icon;
+
   if(largeIcon != 0){
     nid.hBalloonIcon = largeIcon;
     nid.dwInfoFlags = NIIF_USER | NIIF_LARGE_ICON;
@@ -181,6 +257,7 @@ void tray_update(struct tray *tray) {
   if(can_show_notifications == 1 && tray->notification_cb != NULL){
     notification_cb = tray->notification_cb;
   }
+
   Shell_NotifyIcon(NIM_MODIFY, &nid);
 
   if (prevmenu != NULL) {
@@ -190,9 +267,7 @@ void tray_update(struct tray *tray) {
 
 void tray_exit(void) {
   Shell_NotifyIcon(NIM_DELETE, &nid);
-  if (nid.hIcon != 0) {
-    DestroyIcon(nid.hIcon);
-  }
+  _destroy_icon_cache();
   if (hmenu != 0) {
     DestroyMenu(hmenu);
   }

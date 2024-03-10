@@ -16,6 +16,8 @@ struct tray {
   const char *notification_title;
   void (*notification_cb)();
   struct tray_menu *menu;
+  const int iconPathCount;
+  const char *allIconPaths[];
 };
 
 struct tray_menu {
