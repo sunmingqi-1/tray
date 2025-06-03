@@ -83,7 +83,7 @@ static LRESULT CALLBACK _tray_wnd_proc(HWND hwnd, UINT msg, WPARAM wparam, LPARA
   }
 
   if (msg == wm_taskbarcreated) {
-    Shell_NotifyIcon(NIM_ADD, &nid);
+    // Shell_NotifyIcon(NIM_ADD, &nid);
     return 0;
   }
 
@@ -236,7 +236,7 @@ int tray_init(struct tray *tray) {
   nid.uID = 0;
   nid.uFlags = NIF_ICON | NIF_MESSAGE;
   nid.uCallbackMessage = WM_TRAY_CALLBACK_MESSAGE;
-  Shell_NotifyIcon(NIM_ADD, &nid);
+  // Shell_NotifyIcon(NIM_ADD, &nid);
 
   tray_update(tray);
   return 0;
@@ -296,7 +296,7 @@ void tray_update(struct tray *tray) {
     notification_cb = tray->notification_cb;
   }
 
-  Shell_NotifyIcon(NIM_MODIFY, &nid);
+  // Shell_NotifyIcon(NIM_MODIFY, &nid);
 
   if (prevmenu != NULL) {
     DestroyMenu(prevmenu);
@@ -304,7 +304,7 @@ void tray_update(struct tray *tray) {
 }
 
 void tray_exit(void) {
-  Shell_NotifyIcon(NIM_DELETE, &nid);
+  // Shell_NotifyIcon(NIM_DELETE, &nid);
   _destroy_icon_cache();
   if (hmenu != 0) {
     DestroyMenu(hmenu);
